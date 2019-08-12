@@ -3,6 +3,7 @@ import { NativeModules, NativeEventEmitter, Platform } from 'react-native';
 const RNCallKeepModule = NativeModules.RNCallKeep;
 const eventEmitter = new NativeEventEmitter(RNCallKeepModule);
 
+const RNCallKeepSpeakerStatus = 'RNCallKeepSpeakerStatus';
 const RNCallKeepDidReceiveStartCallAction = 'RNCallKeepDidReceiveStartCallAction';
 const RNCallKeepPerformAnswerCallAction = 'RNCallKeepPerformAnswerCallAction';
 const RNCallKeepPerformEndCallAction = 'RNCallKeepPerformEndCallAction';
@@ -45,6 +46,9 @@ const didPerformSetMutedCallAction = handler =>
 const didToggleHoldCallAction = handler =>
   eventEmitter.addListener(RNCallKeepDidToggleHoldAction, handler);
 
+const speakerStatus = handler =>
+  eventEmitter.addListener(RNCallKeepSpeakerStatus, handler);
+
 const didPerformDTMFAction = handler =>
   eventEmitter.addListener(RNCallKeepDidPerformDTMFAction, (data) => {
     const payload = isIOS ? { dtmf: data.digits, callUUID: data.callUUID } : data;
@@ -56,6 +60,7 @@ export const listeners = {
   didReceiveStartCallAction,
   answerCall,
   endCall,
+  speakerStatus,
   didActivateAudioSession,
   didDisplayIncomingCall,
   didPerformSetMutedCallAction,
