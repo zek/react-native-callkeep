@@ -11,7 +11,7 @@ Pod::Spec.new do |s|
   s.author              = package['author']
   s.source              = { :git => package['repository']['url'], :tag => "v#{s.version}" }
   s.requires_arc        = true
-  s.platform            = :ios, "8.0"
+  s.platform            = :ios, "10.0"
   s.source_files        = "ios/RNCallKeep/*.{h,m}"
   s.dependency 'React-Core'
 end
