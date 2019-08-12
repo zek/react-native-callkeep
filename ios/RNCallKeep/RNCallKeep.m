@@ -17,6 +17,7 @@
 
 static int const DelayInSeconds = 3;
 
+static NSString *const RNCallKeepSpeakerStatus = @"RNCallKeepSpeakerStatus";
 static NSString *const RNCallKeepHandleStartCallNotification = @"RNCallKeepHandleStartCallNotification";
 static NSString *const RNCallKeepDidReceiveStartCallAction = @"RNCallKeepDidReceiveStartCallAction";
 static NSString *const RNCallKeepPerformAnswerCallAction = @"RNCallKeepPerformAnswerCallAction";
@@ -32,6 +33,7 @@ static NSString *const RNCallKeepDidToggleHoldAction = @"RNCallKeepDidToggleHold
     NSMutableDictionary *_settings;
     NSOperatingSystemVersion _version;
     BOOL _isStartCallActionEventListenerAdded;
+    BOOL _monitorAudioRouteChange;
 }
 
 // should initialise in AppDelegate.m
@@ -47,7 +49,9 @@ RCT_EXPORT_MODULE()
                                                  selector:@selector(handleStartCallNotification:)
                                                      name:RNCallKeepHandleStartCallNotification
                                                    object:nil];
+        [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(handleAudioRouteChange:) name:AVAudioSessionRouteChangeNotification object:nil];
         _isStartCallActionEventListenerAdded = NO;
+        _monitorAudioRouteChange = NO;
     }
     return self;
 }
@@ -72,6 +76,7 @@ RCT_EXPORT_MODULE()
              RNCallKeepPerformAnswerCallAction,
              RNCallKeepPerformEndCallAction,
              RNCallKeepDidActivateAudioSession,
+             RNCallKeepSpeakerStatus,
              RNCallKeepDidDisplayIncomingCall,
              RNCallKeepDidPerformSetMutedCallAction,
              RNCallKeepPerformPlayDTMFCallAction,
@@ -423,6 +428,24 @@ continueUserActivity:(NSUserActivity *)userActivity
 #endif
 }
 
+// Handle audio route change
+- (void)handleAudioRouteChange:(NSNotification *) notification
+{
+    if(_monitorAudioRouteChange) {
+        NSNumber* reasonValue = notification.userInfo[@"AVAudioSessionRouteChangeReasonKey"];
+        AVAudioSessionRouteDescription* previousRouteKey = notification.userInfo[@"AVAudioSessionRouteChangePreviousRouteKey"];
+        NSArray* outputs = [previousRouteKey outputs];
+        if([outputs count] > 0) {
+            AVAudioSessionPortDescription *output = outputs[0];
+            if(![output.portType isEqual: @"Speaker"] && [reasonValue isEqual:@4]) {
+                [self sendEventWithName:RNCallKeepSpeakerStatus body:@YES];
+            } else if([output.portType isEqual: @"Speaker"] && [reasonValue isEqual:@3]) {
+                [self sendEventWithName:RNCallKeepSpeakerStatus body:@NO];
+            }
+        }
+    }
+}
+
 // Starting outgoing call
 - (void)provider:(CXProvider *)provider performStartCallAction:(CXStartCallAction *)action
 {
@@ -469,6 +492,7 @@ RCT_EXPORT_METHOD(reportUpdatedCall:(NSString *)uuidString contactIdentifier:(NS
 #endif
     NSString *callUUID = [self containsLowerCaseLetter:action.callUUID.UUIDString] ? action.callUUID.UUIDString : [action.callUUID.UUIDString lowercaseString];
     [self sendEventWithName:RNCallKeepPerformEndCallAction body:@{ @"callUUID": callUUID }];
+    _monitorAudioRouteChange = NO;
     [action fulfill];
 }
 
@@ -504,6 +528,7 @@ RCT_EXPORT_METHOD(reportUpdatedCall:(NSString *)uuidString contactIdentifier:(NS
 #ifdef DEBUG
     NSLog(@"[RNCallKeep][CXProviderDelegate][provider:didActivateAudioSession]");
 #endif
+    _monitorAudioRouteChange = YES;
     [self sendEventWithName:RNCallKeepDidActivateAudioSession body:nil];
 }
 
