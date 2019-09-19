@@ -22,7 +22,7 @@ project(':react-native-callkeep').projectDir = new File(rootProject.projectDir, 
 3. In `android/app/src/main/java/.../MainApplication.java`:
 
 ```java
-import io.wazo.callkeep.RNCallKeepPackage; // Add this import line with others
+import io.wazo.callkeep.RNCallKeepPackage; // Add this import line
 //...
 
 private static List<ReactPackage> getPackages() {
@@ -36,18 +36,20 @@ private static List<ReactPackage> getPackages() {
 4. Add permissionResult listener in `MainActivity.java`:
 
 ```java
-import io.wazo.callkeep.RNCallKeepModule; // Add this import line with others
+import io.wazo.callkeep.RNCallKeepModule; // Add these import lines
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 
 public class MainActivity extends ReactActivity {
     // ...
 
     // Permission results
     @Override
-    public void onRequestPermissionsResult(int permsRequestCode, String[] permissions, int[] grantResults) {
-        super.onRequestPermissionsResult(permsRequestCode, permissions, grantResults);
-        switch (permsRequestCode) {
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        switch (requestCode) {
             case RNCallKeepModule.REQUEST_READ_PHONE_STATE:
-                RNCallKeepModule.onRequestPermissionsResult(grantResults);
+                RNCallKeepModule.onRequestPermissionsResult(requestCode, permissions, grantResults);
                 break;
         }
     }
@@ -76,4 +78,23 @@ public class MainActivity extends ReactActivity {
     </service>
     // ....
 </application>
+```
+
+2. To be able to wake up your killed application when making an outgoing call form the native Phone application:
+
+Add this in the `application` node of `android/app/src/main/AndroidManifest.xml` :
+
+```xml
+<service android:name="io.wazo.callkeep.RNCallKeepBackgroundMessagingService" />
+```
+
+
+In your `index.android.js` file :
+
+```js
+AppRegistry.registerHeadlessTask('RNCallKeepBackgroundMessage', () => ({ name, callUUID, handle }) => {
+  // Make your call here
+  
+  return Promise.resolve();
+});
 ```
