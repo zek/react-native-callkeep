@@ -380,6 +380,11 @@ RCT_EXPORT_METHOD(sendDTMF:(NSString *)uuidString dtmf:(NSString *)key)
     if (_settings[@"ringtoneSound"]) {
         providerConfiguration.ringtoneSound = _settings[@"ringtoneSound"];
     }
+    if (_settings[@"includesCallsInRecents"]) {
+        if (@available(iOS 11.0, *)) {
+            providerConfiguration.includesCallsInRecents = [_settings[@"includesCallsInRecents"] boolValue];
+        }
+    }
     return providerConfiguration;
 }
 
